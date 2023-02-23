@@ -35,9 +35,9 @@ class SelfAttention(nn.Module):
         return attention_output
 
     
-class Transformer(nn.Module):
+class TransformerBlock(nn.Module):
     def __init__(self,embeded_size,heads,dropout,forward_expansion):
-        super(Transformer,self).__init__()
+        super(TransformerBlock,self).__init__()
         self.attention=SelfAttention(embeded_size,heads)
         self.dropout=torch.Dropout(dropout)
         self.norm1=nn.LayerNorm(embeded_size)
@@ -53,4 +53,67 @@ class Transformer(nn.Module):
         forward=self.feedforward(x)
         out=self.dropout(self.norm2(forward+x))
         return out
+class Encoder(nn.Module):
     
+    def __init__(self,src_vocab_size,embeded_size,num_layers,heads,device,forward_expansion,dropout,max_length):
+        super(Encoder,self)__init__()
+        self.embeded_size=embeded_size
+        self.dropout=nn.Dropout(dropout)
+        self.positional_embedding=nn.Embedding(max_length,embeded_size)
+        self.word_embedding=nn.Embedding(src_vocab_size,embeded_size)
+        self.layers=nn.ModuleList([TransformerBlock(embeded_size,heads,dropout,forward_expansion)])
+        def forward(self,x,masks):
+            N,seq_length=x.shape
+            positions=torch.arange(0,seq_length).expand(N,seq_length).to(self.device)
+            out=self.dropout(self.word_embedding+self.positional_embedding(positions))
+            for layer in self.layers:
+                out=layer(out,out,out,masks)
+            return out
+class DecoderBlock(nn.Module):
+    def __init__(self,embeded_size,heads,forward_expansion,dropout,device):
+        super(DecoderBlock,self)__init__()
+        self.dropout=nn.Dropout(dropout)
+        self.attention=SelfAttention(embeded_size,query,keys,values,masks)
+        self.transformerblock=Transformer(embeded_size,heads,dropout,forward_expansion)
+        self.norm1=nn.LayerNorm(embeded_size)
+    def forward(self,x,query,keys,values,src_masks,trg_masks):
+        attention=self.attention(x,x,x,trg_masks)
+        normalization=self.dropout(self.norm1(attention+x))
+        out=self.transformerblock(query,keys,values,src_masks)
+        return out
+class Decoder(nn.Module):
+    def __init__(self,trg_vocab_size,embeded_size,num_layers,heads,forward_expansion,dropout,device,max_length):
+        super(Decoder,self)__init__()
+        self.device=device
+        self.word_embedding=nn.Embedding(trg_vocab_size,embeded_size)
+        self.positional_embedding=nn.Embedding(max_length,embeded_size)
+        self.layers=nn.ModuleList([DecoderBlock(embeded_size,heads,forward_expansion,dropout,device)])
+        self.dropout=nn.Dropout(dropout)
+        self.fc_out=nn.Linear(embeded_size,trg_vocab_size)
+    def forward(self,x,enc_out,src_masks,trg_masks):
+        N,seq_length=x.shape
+        positions=torch.arange(0,seq_length).expand(N,seq_length).to(self.device)
+        x=self.dropout(self.positional_embedding(positions)+self.word_embedding(x))
+        for layer in self.layers:
+            x=layer(x,enc_out,src_masks,trg_masks)
+        out=self.fc_out(x)
+class Transformer(nn.Module):
+    def __init__(self,src_vocab_size,trg_vocab_size,src_pad_idx,trg_pad_idx,embeded_size=256,num_layers=6,forward_expansion=4,heads=8,dropout=0,device='cuda',max_length=100):
+        super()__init__(Transformer,self)
+        self.encoder=Encoder(src_vocab_size,embeded_size,num_layers,heads,device,forward_expansion,dropout,max_length)
+        self.decoder=Decoder(trg_vocab_size,embeded_size,num_layers,heads,device,forward_expansion,dropout,max_length)
+        self.src_pad_idx=src_pad_idx
+        self.trg_pad_idx=trg_pad_idx
+        self.device=device
+    def make_src_masks(self,src):
+        src_masks=(src!=self.src_pad_idx).unsqueeze(1).unsqueeze(2)
+        return src_masks.to(device)
+    def make_trg_masks(self,trg):
+        N,trg_len=trg.shape
+        trg_masks=torch.tril(torch.ones(trg_len,trg_len)).expand(N,1,trg_len,trg_len)
+        return trg_masks.to(device)
+    def forward()
+    
+        
+                
+        
